@@ -162,6 +162,7 @@ sqliteHandler.parseItem = function(data) {
 };
 
 sqliteHandler.get = async function(store, indexName, value) {
+  if (value instanceof Date) value = value.toISOString();
   const rows = await sqliteHandler.query(
     `SELECT data FROM ${store} WHERE ${indexName} = ? LIMIT 1`,
     [value]
@@ -170,6 +171,7 @@ sqliteHandler.get = async function(store, indexName, value) {
 };
 
 sqliteHandler.getFirstNonArchived = async function(store, indexName, value) {
+  if (value instanceof Date) value = value.toISOString();
   const rows = await sqliteHandler.query(
     `SELECT data FROM ${store} WHERE ${indexName} = ? AND (archived IS NULL OR archived = 0) LIMIT 1`,
     [value]

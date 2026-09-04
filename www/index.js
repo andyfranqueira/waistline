@@ -512,10 +512,6 @@ document.addEventListener("deviceready", async function() {
     app.f7.views.main.router.navigate(settings.appearance["start-page"]);
   }
 
-  if (dbHandler._impl === sqliteHandler) {
-    app.Settings.put("migration", "sqliteComplete", true);
-  }
-
   triggerAutoBackup();
 });
 
