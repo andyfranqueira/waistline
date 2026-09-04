@@ -639,9 +639,8 @@ app.Settings = {
 
       item.dateTime = new Date();
 
-      dbHandler.put(item, "foodList").onsuccess = (e) => {
-        resolve(e.target.result);
-      };
+      let result = await dbHandler.put(item, "foodList");
+      resolve(result);
     })
   },
 

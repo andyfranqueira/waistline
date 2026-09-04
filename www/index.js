@@ -492,7 +492,9 @@ let triggerAutoBackup = function() {
 document.addEventListener("deviceready", async function() {
   app.localize();
 
-  await dbHandler.initializeDb();
+  await indexedDbHandler.initializeDb();
+  await sqliteHandler.initializeDb();
+  dbHandler._impl = indexedDbHandler; // TODO: flip to sqliteHandler once migration is implemented
 
   if (settings == undefined || settings.firstTimeSetup == undefined) {
     app.Settings.firstTimeSetup();
