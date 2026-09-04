@@ -228,3 +228,49 @@ sqliteHandler.processItems = async function(store, indexName, condition, callbac
     if (updated) await sqliteHandler.put(item, store);
   }
 };
+
+sqliteHandler.EXPORT_FORMAT = "sqlite-kv-v1";
+
+sqliteHandler.export = async function() {
+  const stores = ["foodList", "diary", "meals", "recipes"];
+  const result = { format: sqliteHandler.EXPORT_FORMAT, exportedAt: new Date().toISOString(), stores: {} };
+
+  for (const store of stores) {
+    const rows = await sqliteHandler.query(`SELECT data FROM ${store}`);
+    result.stores[store] = rows.map(row => JSON.parse(row.data));
+  }
+
+  const linkRows = await sqliteHandler.query("SELECT store_name, item_id, category FROM category_links");
+  result.categoryLinks = linkRows.map(row => ({ store_name: row.store_name, item_id: row.item_id, category: row.category }));
+
+  return result;
+};
+
+sqliteHandler.import = function(data) {
+  if (data.format !== sqliteHandler.EXPORT_FORMAT) {
+    throw new Error("This backup was made by an older version of the app and can't be restored here.");
+  }
+
+  const stores = ["foodList", "diary", "meals", "recipes"];
+  const statements = stores.map(store => [`DELETE FROM ${store}`]);
+  statements.push(["DELETE FROM category_links"]);
+
+  for (const store of stores) {
+    for (const item of data.stores[store] || []) {
+      const cols = sqliteHandler.extractColumns(store, item);
+      statements.push([
+        `INSERT INTO ${store} (id, ${cols.names}, data) VALUES (?, ${cols.qs}, ?)`,
+        [item.id, ...cols.values, JSON.stringify(item)]
+      ]);
+    }
+  }
+
+  for (const link of data.categoryLinks || []) {
+    statements.push([
+      "INSERT INTO category_links (store_name, item_id, category) VALUES (?, ?, ?)",
+      [link.store_name, link.item_id, link.category]
+    ]);
+  }
+
+  return new Promise((resolve, reject) => sqliteHandler.db.sqlBatch(statements, resolve, reject));
+};

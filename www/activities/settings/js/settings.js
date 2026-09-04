@@ -493,7 +493,12 @@ app.Settings = {
               text: app.strings.dialogs.ok || "OK",
               keyCodes: app.Utils.enterKeyCode,
               onClick: async () => {
-                await dbHandler.import(data);
+                try {
+                  await dbHandler.import(data);
+                } catch (e) {
+                  app.Utils.toast(e.message || app.strings.settings.integration["import-fail"] || "Import Failed");
+                  return;
+                }
 
                 if (data.settings !== undefined) {
                   let settings = app.Settings.migrateSettings(data.settings, false);

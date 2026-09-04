@@ -494,7 +494,14 @@ document.addEventListener("deviceready", async function() {
 
   await indexedDbHandler.initializeDb();
   await sqliteHandler.initializeDb();
-  dbHandler._impl = indexedDbHandler; // TODO: flip to sqliteHandler once migration is implemented
+
+  try {
+    await migration.run();
+    dbHandler._impl = sqliteHandler;
+  } catch (e) {
+    console.error("Migration to SQLite failed, staying on IndexedDB for this session", e);
+    dbHandler._impl = indexedDbHandler;
+  }
 
   if (settings == undefined || settings.firstTimeSetup == undefined) {
     app.Settings.firstTimeSetup();
@@ -503,6 +510,10 @@ document.addEventListener("deviceready", async function() {
     settings = app.Settings.migrateSettings(settings);
     app.Settings.changeTheme(settings.appearance.mode, settings.appearance.theme);
     app.f7.views.main.router.navigate(settings.appearance["start-page"]);
+  }
+
+  if (dbHandler._impl === sqliteHandler) {
+    app.Settings.put("migration", "sqliteComplete", true);
   }
 
   triggerAutoBackup();
