@@ -198,7 +198,9 @@ sqliteHandler.getIndexSorted = async function(store, indexName, direction, range
 
   if (range) {
     sql += ` WHERE ${indexName} BETWEEN ? AND ?`;
-    params.push(range.lower, range.upper);
+    let lower = range.lower instanceof Date ? range.lower.toISOString() : range.lower;
+    let upper = range.upper instanceof Date ? range.upper.toISOString() : range.upper;
+    params.push(lower, upper);
   }
 
   sql += ` ORDER BY ${indexName} ${direction === 'prev' ? 'DESC' : 'ASC'}`;
