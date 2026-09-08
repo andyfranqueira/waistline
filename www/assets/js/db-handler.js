@@ -23,8 +23,22 @@ var dbHandler = {};
 dbHandler._impl = null;
 
 dbHandler.initializeDb = async function() {
-  await indexedDbHandler.initializeDb();
-  dbHandler._impl = indexedDbHandler;
+  if (app.Settings.get("migration", "sqliteComplete") === true) {
+    await sqliteHandler.initializeDb();
+    dbHandler._impl = sqliteHandler;
+
+  } else {
+    await indexedDbHandler.initializeDb();
+    await sqliteHandler.initializeDb();
+
+    try {
+      await dbMigration.run();
+      dbHandler._impl = sqliteHandler;
+    } catch (e) {
+      console.error("Migration to SQLite failed, staying on IndexedDB for this session", e);
+      dbHandler._impl = indexedDbHandler;
+    }
+  }
 };
 
 dbHandler.get                 = (...args) => dbHandler._impl.get(...args);
