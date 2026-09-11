@@ -19,24 +19,46 @@
 
 var dbHandler = {};
 
-// Assigned once, during initializeDb
 dbHandler._impl = null;
+dbHandler._initPromise = null;
 
-dbHandler.initializeDb = async function() {
+// In-flight guard to prevent concurrent calls.
+dbHandler.initializeDb = function() {
+  if (dbHandler._initPromise) {
+    return dbHandler._initPromise;
+  }
+
+  dbHandler._initPromise = dbHandler._doInitializeDb().finally(() => {
+    dbHandler._initPromise = null;
+  });
+
+  return dbHandler._initPromise;
+};
+
+dbHandler._doInitializeDb = async function() {
   if (app.Settings.get("migration", "sqliteComplete") === true) {
-    await sqliteHandler.initializeDb();
-    dbHandler._impl = sqliteHandler;
+    try {
+      await sqliteHandler.initializeDb();
+      dbHandler._impl = sqliteHandler;
+    } catch (err) {
+      console.error("Failed to open the SQLite database", err);
+      app.Utils.notify("Waistline couldn't open its database. Try restarting the app.", "error");
+      throw err;
+    }
 
   } else {
     await indexedDbHandler.initializeDb();
     await sqliteHandler.initializeDb();
 
+    app.f7.preloader.show();
     try {
       await dbMigration.run();
       dbHandler._impl = sqliteHandler;
     } catch (e) {
       console.error("Migration to SQLite failed, staying on IndexedDB for this session", e);
       dbHandler._impl = indexedDbHandler;
+    } finally {
+      app.f7.preloader.hide();
     }
   }
 };

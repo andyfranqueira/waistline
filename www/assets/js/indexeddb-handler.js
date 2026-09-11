@@ -19,13 +19,13 @@
 
 var indexedDbHandler = {
   DB: {},
+  databaseVersion: 34,
 
   initializeDb: function() {
     return new Promise(async function(resolve, reject) {
       //Open database
       var databaseName = 'waistlineDb';
-      var databaseVersion = 34;
-      var openRequest = indexedDB.open(databaseName, databaseVersion);
+      var openRequest = indexedDB.open(databaseName, indexedDbHandler.databaseVersion);
 
       //Error handler
       openRequest.onerror = function(e) {
@@ -799,6 +799,10 @@ var indexedDbHandler = {
   },
 
   import: function(data) {
+    if (data.format !== undefined) {
+      throw new Error("This backup was made by a newer version of the app and cannot be restored here. Update the app and try again.");
+    }
+
     return new Promise(function(resolve, reject) {
 
       let t = DB.transaction(DB.objectStoreNames, "readwrite");
